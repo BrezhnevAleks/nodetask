@@ -3,6 +3,7 @@ const Sequelize = require("sequelize");
 const crypto = require("crypto");
 const app = express();
 const userController = require("./controllers/userController.js");
+const bodyParser = require("body-parser");
 
 const sequelize = new Sequelize("testdb", "postgres", "fusion", {
   dialect: "postgres",
@@ -64,14 +65,15 @@ console.log("Расшифрованый пароль:" + decript);
 app.set("view engine", "hbs");
 
 const userRouter = express.Router();
+app.use(bodyParser.urlencoded({ extended: false }));
 
 userRouter.use("/create", userController.addUser);
-userRouter.use("/", userController.getUsers);
 userRouter.use("/delete", userController.deleteUser);
 userRouter.use("/login", userController.loginUser);
 userRouter.use("/update", userController.updateUser);
-app.use("/users", userRouter);
+userRouter.use("/", userController.getUsers);
 
+app.use("/users", userRouter);
 // app.post("/create", function (request, response) {
 //   User.create({
 //     name: "Tom",

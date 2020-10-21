@@ -1,8 +1,22 @@
 const Sequelize = require("sequelize");
+const crypto = require("crypto");
+const bodyParser = require("body-parser");
+
 const sequelize = new Sequelize("testdb", "postgres", "fusion", {
   dialect: "postgres",
   host: "localhost",
 });
+
+function cipher(pass) {
+  let cipher = crypto.createCipher("aes-256-ecb", "secretword");
+  return cipher.update(pass, "utf8", "hex") + cipher.final("hex");
+}
+
+function decipher(pass) {
+  let decipher = crypto.createDecipher("aes-256-ecb", "secretword");
+  return decipher.update(pass, "hex", "utf8") + decipher.final("utf8");
+}
+
 const User = sequelize.define("user", {
   id: {
     type: Sequelize.INTEGER,
@@ -26,11 +40,16 @@ const User = sequelize.define("user", {
 });
 
 exports.addUser = function (request, response) {
+  const { name } = request.body;
+  const { email } = request.body;
+  const { dob } = request.body;
+  const { password } = request.body;
+
   User.create({
-    name: "Tom",
-    email: "example@mail.ru",
-    dob: new Date(),
-    password: cipher("supersecretpassword"),
+    name: name,
+    email: email,
+    dob: dob,
+    password: cipher(password),
   }).then((res) => {
     console.log(res);
   });
@@ -47,22 +66,26 @@ exports.getUsers = function (request, response) {
 };
 
 exports.deleteUser = function (request, response) {
+  const { id } = request.body;
   User.destroy({
     where: {
-      name: "Tom",
+      id: id,
     },
   }).then((res) => {
     console.log(res);
+    console.log("Пользователь с id " + id + " был удалён");
   });
   response.end();
 };
 
 exports.updateUser = function (request, response) {
+  const { name } = request.body;
+  const { email } = request.body;
   User.update(
-    { email: "newexample@mail.ru" },
+    { email: email },
     {
       where: {
-        name: "Tom",
+        name: name,
       },
     }
   ).then((res) => {
@@ -72,12 +95,12 @@ exports.updateUser = function (request, response) {
 };
 
 exports.loginUser = function (request, response) {
-  const login = "Tom";
-  const password = "supersecretpassword";
+  const { login } = request.body;
+  const { password } = request.body;
   let logged;
   User.findOne({ where: { name: login } }).then((user) => {
-    console.log(typeof decipher(user.password));
-    console.log(typeof password);
+    //console.log(typeof decipher(user.password));
+    //console.log(typeof password);
     if (decipher(user.password) == password) {
       logged = "success";
     } else logged = "failure";
