@@ -4,7 +4,7 @@ const app = express();
 const userController = require("./controllers/userController.js");
 const bodyParser = require("body-parser");
 
-const sequelize = new Sequelize("testdb", "postgres", "fusion", {
+const sequelize = new Sequelize("database_development", "postgres", "fusion", {
   dialect: "postgres",
   host: "localhost",
 });

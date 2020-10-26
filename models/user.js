@@ -1,26 +1,27 @@
-const Sequelize = require("sequelize");
-const sequelize = new Sequelize("testdb", "postgres", "fusion", {
-  dialect: "postgres",
-  host: "localhost",
-});
-module.exports = sequelize.define("user", {
-  id: {
-    type: Sequelize.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-    allowNull: false,
-  },
-  name: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-  email: Sequelize.STRING,
-  dob: {
-    type: Sequelize.DATEONLY,
-    allowNull: false,
-  },
-  password: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-});
+"use strict";
+const { Model } = require("sequelize");
+module.exports = (sequelize, DataTypes) => {
+  class User extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+    }
+  }
+  User.init(
+    {
+      name: { type: DataTypes.STRING, allowNull: false },
+      email: { type: DataTypes.STRING, allowNull: false },
+      dob: { type: DataTypes.DATE, allowNull: false },
+      password: { type: DataTypes.STRING, allowNull: false },
+    },
+    {
+      sequelize,
+      modelName: "User",
+    }
+  );
+  return User;
+};

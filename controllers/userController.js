@@ -1,11 +1,6 @@
-const Sequelize = require("sequelize");
+//const Sequelize = require("sequelize");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-
-const sequelize = new Sequelize("testdb", "postgres", "fusion", {
-  dialect: "postgres",
-  host: "localhost",
-});
 
 function cipher(pass) {
   let cipher = crypto.createCipher("aes-256-ecb", "secretword");
@@ -22,33 +17,10 @@ function validateEmail(email) {
   return re.test(email);
 }
 
-const User = sequelize.define("user", {
-  id: {
-    type: Sequelize.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-    allowNull: false,
-  },
-  name: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-  email: Sequelize.STRING,
-  dob: {
-    type: Sequelize.DATEONLY,
-    allowNull: false,
-  },
-  password: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-});
+const User = require("../models").User;
 
 exports.addUser = function (request, response) {
-  const { name } = request.body;
-  const { email } = request.body;
-  const { dob } = request.body;
-  const { password } = request.body;
+  const { name, email, dob, password } = request.body;
   if (validateEmail(email) && password.length > 6) {
     User.create({
       name: name,
@@ -58,8 +30,10 @@ exports.addUser = function (request, response) {
     }).then((res) => {
       console.log(res);
     });
+  } else {
+    console.log("Invalid email or too short password");
+    response.sendStatus(400);
   }
-  console.log("Invalid email or too short password");
 
   response.end();
 };
@@ -87,8 +61,7 @@ exports.deleteUser = function (request, response) {
 };
 
 exports.updateUser = function (request, response) {
-  const { name } = request.body;
-  const { email } = request.body;
+  const { name, email } = request.body;
   User.update(
     { email: email },
     {
@@ -104,31 +77,32 @@ exports.updateUser = function (request, response) {
 };
 
 exports.loginUser = function (request, response) {
-  const { login } = request.body;
-  const { password } = request.body;
+  const { login, password } = request.body;
   let logged;
   let token;
-  User.findOne({ where: { name: login } }).then((user) => {
-    console.log(decipher(user.password));
-    console.log(password);
-    if (decipher(user.password) == password) {
-      logged = "success";
 
-      token = jwt.sign(
-        { exp: Math.floor(Date.now() / 1000) + 60, data: user.id },
-        "secret"
-      );
-      response.send({ token: token });
-      console.log("Verification: token for user id " + user.id + " is sent");
-      console.log("Результат входа: " + logged);
-      console.log("Token: " + token);
-    } else {
-      logged = "failure";
-      console.log("Verification: invalid password or login");
-    }
+  User.findOne({ where: { name: login } })
+    .then((user) => {
+      console.log(decipher(user.password));
+      console.log(password);
+      if (decipher(user.password) === password) {
+        logged = "success";
 
-    response.end();
-  });
+        token = jwt.sign(
+          { exp: Math.floor(Date.now() / 1000) + 60, data: user.id },
+          "secret"
+        );
+        response.send({ token: token });
+        console.log("Verification: token for user id " + user.id + " is sent");
+        console.log("Результат входа: " + logged);
+        console.log("Token: " + token);
+      } else {
+        logged = "failure";
+        console.log("Verification: invalid password or login");
+        response.sendStatus(406);
+      }
+    })
+    .catch(response.sendStatus(404));
 };
 
 exports.checkToken = function (request, response) {
@@ -140,23 +114,8 @@ exports.checkToken = function (request, response) {
       "Verification: user id " + decoded.data + " can access this information"
     );
   } catch (err) {
-    response.send("Verification: invalid token");
+    response.sendStatus(403);
   }
 
   response.end();
 };
-
-// exports.checkToken = function (request, response) {
-//   const { Authorization } = request.headers;
-//   console.log("Token: " + Authorization);
-//   try {
-//     let decoded = jwt.verify(Authorization, "secret");
-//     response.send(
-//       "Verification: user id " + decoded.data + " can access this information"
-//     );
-//   } catch (err) {
-//     console.log("Verification: invalid token");
-//   }
-
-//   response.end();
-// };
