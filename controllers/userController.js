@@ -1,4 +1,3 @@
-//const Sequelize = require("sequelize");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
@@ -27,67 +26,71 @@ exports.addUser = function (request, response) {
       email: email,
       dob: dob,
       password: cipher(password),
-    }).then((res) => {
-      console.log(res);
-    });
+    })
+      .then(response.sendStatus(201))
+      .catch(response.sendStatus(400).send("Something went terribly wrong"));
   } else {
-    console.log("Invalid email or too short password");
-    response.sendStatus(400);
+    response.status(400).send("Invalid email or too short password");
   }
-
-  response.end();
 };
 
 exports.getUsers = function (request, response) {
   User.findAll({ raw: true })
     .then((users) => {
-      console.log(users);
+      response.send(users);
     })
     .catch((err) => console.log(err));
-  response.end();
 };
 
 exports.deleteUser = function (request, response) {
   const { id } = request.body;
-  User.destroy({
-    where: {
-      id: id,
-    },
-  }).then((res) => {
-    console.log(res);
-    console.log("Пользователь с id " + id + " был удалён");
+  User.findOne({ where: { id: id } }).then((user) => {
+    user
+      ? user
+          .destroy({
+            where: {
+              id: id,
+            },
+          })
+          .then(
+            response.status(200).send("Пользователь с id " + id + " был удалён")
+          )
+      : response.status(404).send("Пользователь с id " + id + " не найден");
   });
-  response.end();
 };
 
 exports.updateUser = function (request, response) {
   const { name, email } = request.body;
-  User.update(
-    { email: email },
-    {
-      where: {
-        name: name,
-      },
-    }
-  ).then((res) => {
-    console.log(res);
-    console.log("Пользователь " + name + " email обновлён на " + email);
+  User.findOne({ where: { name: name } }).then((user) => {
+    user
+      ? user
+          .update(
+            { email: email },
+            {
+              where: {
+                name: name,
+              },
+            }
+          )
+          .then(
+            response
+              .status(200)
+              .send("Пользователь " + name + ": email обновлён на " + email)
+          )
+      : response.status(404).send("Пользователь не найден");
   });
-  response.end();
 };
 
 exports.loginUser = function (request, response) {
   const { login, password } = request.body;
   let logged;
   let token;
-
-  User.findOne({ where: { name: login } })
-    .then((user) => {
+  try {
+    User.findOne({ where: { name: login } }).then((user) => {
       console.log(decipher(user.password));
       console.log(password);
       if (decipher(user.password) === password) {
         logged = "success";
-
         token = jwt.sign(
           { exp: Math.floor(Date.now() / 1000) + 60, data: user.id },
           "secret"
@@ -99,10 +102,12 @@ exports.loginUser = function (request, response) {
       } else {
         logged = "failure";
         console.log("Verification: invalid password or login");
-        response.sendStatus(406);
+        response.status(406).send("Invalid password or login");
       }
-    })
-    .catch(response.sendStatus(404));
+    });
+  } catch (err) {
+    response.status(404).send("Something went wrong");
+  }
 };
 
 exports.checkToken = function (request, response) {
@@ -110,12 +115,13 @@ exports.checkToken = function (request, response) {
   console.log("Token: " + token);
   try {
     let decoded = jwt.verify(token, "secret");
-    response.send(
-      "Verification: user id " + decoded.data + " can access this information"
-    );
+    response
+      .status(200)
+      .send(
+        "Verification: user id " + decoded.data + " can access this information"
+      );
   } catch (err) {
-    response.sendStatus(403);
+    response.sendStatus(403).send("Something wrong with token");
   }
-
   response.end();
 };

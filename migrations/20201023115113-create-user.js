@@ -18,7 +18,7 @@ module.exports = {
       },
       dob: {
         allowNull: false,
-        type: Sequelize.DATE,
+        type: Sequelize.DATEONLY,
       },
       password: {
         allowNull: false,
