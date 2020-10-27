@@ -13,7 +13,7 @@ sequelize
   .sync()
   .then(() => {
     app.listen(3000, function () {
-      console.log("Сервер ожидает подключения...");
+      console.log("Сервер запущен...");
     });
   })
   .catch((err) => console.log(err));
