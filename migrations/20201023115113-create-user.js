@@ -15,6 +15,7 @@ module.exports = {
       email: {
         allowNull: false,
         type: Sequelize.STRING,
+        validate: { isEmail: true },
       },
       dob: {
         allowNull: false,

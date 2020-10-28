@@ -1,7 +1,6 @@
 const express = require("express");
 const Sequelize = require("sequelize");
 const app = express();
-const userController = require("./controllers/userController.js");
 const bodyParser = require("body-parser");
 
 const sequelize = new Sequelize("database_development", "postgres", "fusion", {
@@ -9,23 +8,11 @@ const sequelize = new Sequelize("database_development", "postgres", "fusion", {
   host: "localhost",
 });
 
-sequelize
-  .sync()
-  .then(() => {
-    app.listen(3000, function () {
-      console.log("Сервер запущен...");
-    });
-  })
-  .catch((err) => console.log(err));
+app.listen(3000, function () {
+  console.log("Сервер запущен...");
+});
 
-const userRouter = express.Router();
+const userRouter = require("./routes/userRouter");
+
 app.use(bodyParser.urlencoded({ extended: false }));
-
-userRouter.use("/create", userController.addUser);
-userRouter.use("/delete", userController.deleteUser);
-userRouter.use("/login", userController.loginUser);
-userRouter.use("/update", userController.updateUser);
-userRouter.use("/check", userController.checkToken);
-userRouter.use("/", userController.getUsers);
-
 app.use("/users", userRouter);
