@@ -1,112 +1,112 @@
-const jwt = require("jsonwebtoken");
-const utils = require("../utils");
-const config = require("../config/config.json");
+const utils = require("../utils.js");
 const db = require("../models/index");
 
-exports.createUser = async function (request, response) {
+exports.createUser = async (request, response) => {
   const { name, email, dob, password } = request.body;
+
   {
     try {
-      if (password.length > 6) {
-        const user = await db.User.create({
-          name: name,
-          email: email,
-          dob: dob,
-          password: utils.cipher(password),
-        });
-        response.status(201).send(user);
-      } else throw err;
+      if (password.length < 6) {
+        response.status(400).send("Password is too short");
+        return;
+      }
+
+      const user = await db.User.create({
+        name,
+        email,
+        dob,
+        password: utils.cipher(password),
+      });
+
+      response.status(201).send(user);
     } catch (err) {
-      response.status(400).send("Wrong email or too short password");
+      response.status(500).send("Something went wrong");
     }
   }
 };
 
-exports.getUsers = async function (request, response) {
+exports.getUsers = async (request, response) => {
   try {
     const users = await db.User.findAll({ raw: true });
+
+    if (!users) {
+      response
+        .status(404)
+        .send("No data in the database. Users should be added first");
+      return;
+    }
+
     response.status(200).send(users);
   } catch (err) {
     response.status(400).send("Something went terribly wrong");
   }
 };
 
-exports.deleteUser = async function (request, response) {
+exports.deleteUser = async (request, response) => {
   const { id } = request.body;
+  const find = { id };
+
   try {
-    const user = await db.User.findOne({ where: { id: id } });
-    if (!user) throw err;
-    else {
-      await user.destroy({ where: { id: id } });
-      response.status(200).send("User id " + id + " was successfully deleted");
+    const user = await db.User.findOne({ where: find });
+
+    if (!user) {
+      response.status(404).send(`User id ${id} not found`);
+      return;
     }
+
+    await user.destroy({ where: find });
+    response.status(200).send(`User id ${id} was successfully deleted`);
   } catch (err) {
-    response.status(404).send("User id " + id + " not found");
+    response.status(500).send("Something went wrong");
   }
 };
 
-exports.updateUser = async function (request, response) {
-  const { name, email } = request.body;
+exports.updateUser = async (request, response) => {
+  const { email, newname } = request.body;
+  const find = { email };
   try {
-    const user = await db.User.findOne({ where: { name: name } });
-    if (user) {
-      await user.update(
-        { email: email },
-        {
-          where: {
-            name: name,
-          },
-        }
-      );
-      response
-        .status(200)
-        .send("User " + name + ": email updated. New email: " + email);
-    } else throw err;
-  } catch (err) {
-    response.status(404).send("User " + name + " not found");
-  }
-};
+    const user = await db.User.findOne({ where: find });
 
-exports.loginUser = async function (request, response) {
-  const { login, password } = request.body;
-  let logged;
-  let token;
-  try {
-    const user = await db.User.findOne({ where: { name: login } });
-
-    console.log(utils.decipher(user.password));
-    console.log(password);
-    if (user.password === utils.cipher(password)) {
-      logged = "success";
-      token = jwt.sign(
-        { exp: Math.floor(Date.now() / 1000) + 60, data: user.id },
-        config.secret
-      );
-      response.send({ token: token });
-      console.log("Verification: token for user id " + user.id + " is sent");
-      console.log("Результат входа: " + logged);
-      console.log("Token: " + token);
-    } else {
-      logged = "failure";
-      console.log("Verification: invalid password or login");
-      response.status(406).send("Invalid password or login");
+    if (!user) {
+      response.status(404).send(`User not found`);
+      return;
     }
-  } catch (err) {
-    response.status(404).send("Something went wrong");
-  }
-};
 
-exports.checkToken = function (request, response) {
-  const { token } = request.headers;
-  console.log("Token: " + token);
-  try {
-    let decoded = jwt.verify(token, config.secret);
+    await user.update(
+      { name: newname },
+      {
+        where: find,
+      }
+    );
     response
       .status(200)
-      .send(
-        "Verification: user id " + decoded.data + " can access this information"
-      );
+      .send(`User ${user.id}: name updated. New name: ${newname}`);
   } catch (err) {
-    response.status(403).send("Something wrong with token");
+    response.status(500).send(`Something went wrong`);
+  }
+};
+
+exports.loginUser = async (request, response) => {
+  const { email, password } = request.body;
+  const find = { email };
+  let createdtoken;
+
+  try {
+    const user = await db.User.findOne({ where: find });
+
+    if (!user) {
+      response.status(404).send("User not found");
+      return;
+    }
+
+    if (user.password !== utils.cipher(password)) {
+      response.status(404).send("Invalid password");
+      return;
+    }
+
+    createdtoken = utils.createToken(user.id);
+    response.send({ token: createdtoken });
+  } catch (err) {
+    response.status(500).send("Something went wrong");
   }
 };

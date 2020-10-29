@@ -20,5 +20,11 @@
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
-  "secret": "secretword"
+  "hash": {
+    "type" : "sha256", 
+    "key" : "secretword"
+  },
+  "token": {
+    "secret": "secretword"
+  }
 }
