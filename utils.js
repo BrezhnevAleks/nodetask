@@ -1,5 +1,4 @@
 const crypto = require("crypto");
-exports.secret = "secretword";
 
 module.exports.cipher = function (pass) {
   let cipher = crypto.createCipher("aes-256-ecb", "secretword");
