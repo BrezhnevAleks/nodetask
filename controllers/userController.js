@@ -1,17 +1,16 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-
 const utils = require("../utils");
-
 const User = require("../models").User;
 const config = require("../config/config.json");
+const db = require("../models/index");
 
 exports.createUser = async function (request, response) {
   const { name, email, dob, password } = request.body;
   {
     try {
       if (password.length > 6) {
-        const user = await User.create({
+        const user = await db.User.create({
           name: name,
           email: email,
           dob: dob,
@@ -27,7 +26,7 @@ exports.createUser = async function (request, response) {
 
 exports.getUsers = async function (request, response) {
   try {
-    const users = await User.findAll({ raw: true });
+    const users = await db.User.findAll({ raw: true });
     response.status(200).send(users);
   } catch (err) {
     response.status(400).send("Something went terribly wrong");
@@ -37,7 +36,7 @@ exports.getUsers = async function (request, response) {
 exports.deleteUser = async function (request, response) {
   const { id } = request.body;
   try {
-    const user = await User.findOne({ where: { id: id } });
+    const user = await db.User.findOne({ where: { id: id } });
     if (!user) throw err;
     else {
       await user.destroy({ where: { id: id } });
@@ -51,7 +50,7 @@ exports.deleteUser = async function (request, response) {
 exports.updateUser = async function (request, response) {
   const { name, email } = request.body;
   try {
-    const user = await User.findOne({ where: { name: name } });
+    const user = await db.User.findOne({ where: { name: name } });
     if (user) {
       await user.update(
         { email: email },
@@ -75,7 +74,7 @@ exports.loginUser = async function (request, response) {
   let logged;
   let token;
   try {
-    const user = await User.findOne({ where: { name: login } });
+    const user = await db.User.findOne({ where: { name: login } });
 
     console.log(utils.decipher(user.password));
     console.log(password);
